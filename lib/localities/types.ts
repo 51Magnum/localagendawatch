@@ -1,23 +1,11 @@
 import type { EnerGovClient } from "@/lib/sources/energov";
 
 /**
- * A tracked item is a curated reference to a record in an external data
- * source (typically an EnerGov plan or permit). The registry keeps the list
- * narrow and editor-controlled; search-driven discovery can be layered on
- * later without changing this shape.
+ * Editorial items are hand-authored pages for proposals that either aren't
+ * captured by a structured feed yet (e.g. neighborhood-meeting notices mailed
+ * by a developer before anything is filed with the city) or deserve a
+ * curator's commentary on top of the raw data.
  */
-export type TrackedPlan = {
-  kind: "energov-plan";
-  /** EnerGov PlanId (GUID). Stable primary key. */
-  planId: string;
-  /** Human-readable PlanNumber (e.g. "ANN-00352-2026"). Used in URLs. */
-  planNumber: string;
-  /** Short label for listings; falls back to the EnerGov Description when absent. */
-  label?: string;
-  /** One-line teaser for listings. */
-  blurb?: string;
-};
-
 export type EditorialItem = {
   kind: "editorial";
   /** URL slug under the locality, e.g. "toll-brothers-amity-happy-valley". */
@@ -26,7 +14,48 @@ export type EditorialItem = {
   blurb?: string;
 };
 
-export type TrackedItem = TrackedPlan | EditorialItem;
+export type TrackedItem = EditorialItem;
+
+/**
+ * Normalised "hearing" / planning application surfaced from a locality's GIS
+ * feed or case-management system. Shape is intentionally generic so other
+ * cities can populate it from whatever upstream source they use.
+ */
+export type HearingPhase =
+  | "Review"
+  | "Notification"
+  | "PZ Commission"
+  | "City Council"
+  | "Recording"
+  | "Other";
+
+export type Hearing = {
+  /** Stable application id as displayed by the jurisdiction, e.g. "ANN-00352-2026". */
+  appId: string;
+  /** Short type code ("ZMA"). */
+  appType: string;
+  /** Human label for the type ("Zoning Map Amendment or Rezone"). */
+  appTypeLabel: string;
+  /** Free-form status as reported upstream. */
+  appStatus: string;
+  /** Normalised phase. Unknown values are mapped to "Other". */
+  appPhase: HearingPhase;
+  /** Raw upstream phase string if different from the normalised value. */
+  appPhaseRaw: string;
+  /** Project / subdivision / scope description. */
+  appScope: string | null;
+  /** Parcel area in acres, if known. */
+  appAcres: number | null;
+  /** External detail URL (typically the EnerGov portal). */
+  externalUrl: string | null;
+  /** EnerGov PlanId (GUID) if we can resolve one; powers on-site plan pages. */
+  energovPlanId: string | null;
+};
+
+export type HearingFeed = {
+  active: Hearing[];
+  completed: Hearing[];
+};
 
 /**
  * Placeholder for future meeting-source integrations (P&Z agendas, city
@@ -47,8 +76,13 @@ export type Locality = {
   fullName: string;
   /** Canonical public-portal URL, shown on listings for attribution. */
   portalUrl?: string;
+  /** Attribution line rendered on pages that surface this locality's data. */
+  dataAttribution?: string;
   energov?: EnerGovClient;
+  /** Editorial items pinned at the top of the hub. */
   tracked: TrackedItem[];
+  /** Live hearings / applications feed, if the locality provides one. */
+  getHearings?: () => Promise<HearingFeed>;
   /** Reserved for future meeting providers (P&Z, city council). */
   meetingSources?: MeetingSourceConfig[];
 };

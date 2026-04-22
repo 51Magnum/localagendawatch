@@ -1,7 +1,13 @@
 import { nampa } from "./nampa";
-import type { Locality, TrackedItem, TrackedPlan } from "./types";
+import type { Hearing, Locality } from "./types";
 
-export type { Locality, TrackedItem, TrackedPlan } from "./types";
+export type {
+  Hearing,
+  HearingFeed,
+  HearingPhase,
+  Locality,
+  TrackedItem,
+} from "./types";
 
 const LOCALITIES: Record<string, Locality> = {
   [nampa.slug]: nampa,
@@ -15,13 +21,11 @@ export function listLocalities(): Locality[] {
   return Object.values(LOCALITIES);
 }
 
-export function findTrackedPlan(
-  locality: Locality,
-  planNumber: string
-): TrackedPlan | null {
-  const match = locality.tracked.find(
-    (t): t is TrackedPlan =>
-      t.kind === "energov-plan" && t.planNumber === planNumber
-  );
-  return match ?? null;
+/** Look up a hearing within a pre-fetched feed by its APPID. Case-insensitive. */
+export function findHearing(
+  hearings: Hearing[],
+  appId: string
+): Hearing | null {
+  const needle = appId.toUpperCase();
+  return hearings.find((h) => h.appId.toUpperCase() === needle) ?? null;
 }

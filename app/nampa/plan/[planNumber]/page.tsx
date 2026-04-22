@@ -2,17 +2,23 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getLocalityContext, localityHref } from "@/lib/locality";
-import { findTrackedPlan, getLocality } from "@/lib/localities";
+import { findHearing, getLocality } from "@/lib/localities";
+import type { Hearing } from "@/lib/localities";
 import type { EnerGovAttachment, EnerGovPlan } from "@/lib/sources/energov";
 
 type RouteParams = { planNumber: string };
 
 export async function generateStaticParams(): Promise<RouteParams[]> {
+  return [];
+}
+
+async function resolveHearing(planNumber: string): Promise<Hearing | null> {
   const nampa = getLocality("nampa");
-  if (!nampa) return [];
-  return nampa.tracked
-    .filter((t) => t.kind === "energov-plan")
-    .map((t) => ({ planNumber: t.planNumber }));
+  if (!nampa?.getHearings) return null;
+  const feed = await nampa.getHearings();
+  return (
+    findHearing(feed.active, planNumber) ?? findHearing(feed.completed, planNumber)
+  );
 }
 
 export async function generateMetadata({
@@ -21,15 +27,14 @@ export async function generateMetadata({
   params: Promise<RouteParams>;
 }): Promise<Metadata> {
   const { planNumber } = await params;
-  const nampa = getLocality("nampa");
-  const tracked = nampa ? findTrackedPlan(nampa, planNumber) : null;
-  if (!tracked) return { title: planNumber };
-  const title = tracked.label ?? `${planNumber} — Nampa plan`;
+  const hearing = await resolveHearing(planNumber);
+  if (!hearing) return { title: planNumber };
+  const title = hearing.appScope
+    ? `${hearing.appScope} (${hearing.appId})`
+    : `${hearing.appId} \u2014 ${hearing.appTypeLabel}`;
   return {
     title,
-    description:
-      tracked.blurb ??
-      `${planNumber} \u2014 land-use application filed with the City of Nampa.`,
+    description: `${hearing.appTypeLabel} \u00b7 ${hearing.appStatus} \u2014 filed with the City of Nampa.`,
   };
 }
 
@@ -41,21 +46,29 @@ export default async function PlanPage({
   const { planNumber } = await params;
   const nampa = getLocality("nampa");
   if (!nampa || !nampa.energov) notFound();
-  const tracked = findTrackedPlan(nampa, planNumber);
-  if (!tracked) notFound();
 
-  const [plan, attachments] = await Promise.all([
-    nampa.energov.getPlan(tracked.planId),
-    nampa.energov.getPlanAttachments(tracked.planId),
-  ]);
+  const hearing = await resolveHearing(planNumber);
+  if (!hearing) notFound();
 
-  if (!plan) notFound();
+  const planId = hearing.energovPlanId;
+  const [plan, attachments]: [EnerGovPlan | null, EnerGovAttachment[]] = planId
+    ? await Promise.all([
+        nampa.energov.getPlan(planId),
+        nampa.energov.getPlanAttachments(planId),
+      ])
+    : [null, []];
 
   const ctx = await getLocalityContext();
   const onNampaSubdomain = ctx.onSubdomain && ctx.subdomainSlug === "nampa";
   const nampaHref = localityHref("nampa", "", ctx);
-  const portalUrl = nampa.energov.planPortalUrl(tracked.planId);
-  const attachmentsUrl = nampa.energov.planPortalUrl(tracked.planId, "attachments");
+  const fallbackPortal =
+    nampa.portalUrl ?? "https://nampaid-energovpub.tylerhost.net/Apps/SelfService";
+  const portalUrl = planId
+    ? nampa.energov.planPortalUrl(planId)
+    : hearing.externalUrl ?? fallbackPortal;
+  const attachmentsUrl = planId
+    ? nampa.energov.planPortalUrl(planId, "attachments")
+    : hearing.externalUrl ?? fallbackPortal;
 
   return (
     <div className="flex flex-1 bg-zinc-50 font-sans dark:bg-black">
@@ -70,12 +83,13 @@ export default async function PlanPage({
           <Link href={nampaHref} className="hover:text-black dark:hover:text-zinc-50">Nampa</Link>
         </nav>
 
-        <PlanHeader plan={plan} tracked={tracked} />
-        <PlanStatusCard plan={plan} />
-        <PlanLocation plan={plan} />
+        <PlanHeader hearing={hearing} plan={plan} />
+        {plan ? <PlanStatusCard plan={plan} /> : <HearingStatusCard hearing={hearing} />}
+        {plan && <PlanLocation plan={plan} />}
         <PlanDocuments
           attachments={attachments}
           attachmentsUrl={attachmentsUrl}
+          hasPlan={Boolean(plan)}
         />
 
         <footer className="border-t border-zinc-200 pt-6 text-sm text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
@@ -100,35 +114,73 @@ export default async function PlanPage({
 }
 
 function PlanHeader({
+  hearing,
   plan,
-  tracked,
 }: {
-  plan: EnerGovPlan;
-  tracked: { label?: string; blurb?: string };
+  hearing: Hearing;
+  plan: EnerGovPlan | null;
 }) {
-  const derived =
-    [plan.PlanType, plan.Description].filter(Boolean).join(" \u2014 ") ||
-    plan.PlanNumber;
-  const title = tracked.label ?? derived;
+  const derived = plan
+    ? [plan.PlanType, plan.Description].filter(Boolean).join(" \u2014 ") ||
+      plan.PlanNumber
+    : hearing.appTypeLabel;
+  const title = hearing.appScope || derived;
+  const planNumber = plan?.PlanNumber ?? hearing.appId;
+  const status = plan?.PlanStatus ?? hearing.appStatus;
+  const address = plan?.MainAddress ?? null;
   return (
     <header className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-2">
         <span className="inline-flex items-center rounded-full border border-zinc-300 bg-white px-3 py-1 font-mono text-xs text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
-          {plan.PlanNumber}
+          {planNumber}
         </span>
-        <span className="inline-flex items-center rounded-full border border-sky-300 bg-sky-100 px-3 py-1 text-xs font-medium uppercase tracking-wide text-sky-900 dark:border-sky-500/40 dark:bg-sky-500/10 dark:text-sky-300">
-          {plan.PlanStatus}
-        </span>
+        {status && (
+          <span className="inline-flex items-center rounded-full border border-sky-300 bg-sky-100 px-3 py-1 text-xs font-medium uppercase tracking-wide text-sky-900 dark:border-sky-500/40 dark:bg-sky-500/10 dark:text-sky-300">
+            {status}
+          </span>
+        )}
+        {hearing.appPhase !== "Other" && (
+          <span className="inline-flex items-center rounded-full border border-zinc-300 bg-zinc-100 px-3 py-1 text-xs font-medium uppercase tracking-wide text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
+            {hearing.appPhase}
+          </span>
+        )}
       </div>
       <h1 className="text-3xl font-semibold leading-tight tracking-tight text-black dark:text-zinc-50 sm:text-4xl">
         {title}
       </h1>
-      {plan.MainAddress && (
+      {address && (
         <p className="text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-          {plan.MainAddress.replace(/\r?\n/g, " \u00b7 ")}
+          {address.replace(/\r?\n/g, " \u00b7 ")}
         </p>
       )}
     </header>
+  );
+}
+
+function HearingStatusCard({ hearing }: { hearing: Hearing }) {
+  const candidates: Array<[string, string | null]> = [
+    ["Type", hearing.appTypeLabel],
+    ["Status", hearing.appStatus],
+    ["Phase", hearing.appPhase === "Other" ? hearing.appPhaseRaw : hearing.appPhase],
+    ["Acres", hearing.appAcres != null ? hearing.appAcres.toFixed(2) : null],
+  ];
+  const items = candidates.filter(
+    (entry): entry is [string, string] => entry[1] != null && entry[1] !== ""
+  );
+  return (
+    <section className="rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950">
+      <h2 className="text-sm font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+        Case status
+      </h2>
+      <dl className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
+        {items.map(([k, v]) => (
+          <div key={k}>
+            <dt className="text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{k}</dt>
+            <dd className="mt-1 font-medium text-black dark:text-zinc-50">{v}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
   );
 }
 
@@ -201,9 +253,11 @@ function PlanLocation({ plan }: { plan: EnerGovPlan }) {
 function PlanDocuments({
   attachments,
   attachmentsUrl,
+  hasPlan,
 }: {
   attachments: EnerGovAttachment[];
   attachmentsUrl: string;
+  hasPlan: boolean;
 }) {
   return (
     <section className="flex flex-col gap-4">
@@ -220,7 +274,12 @@ function PlanDocuments({
           Open in portal
         </a>
       </div>
-      {attachments.length === 0 ? (
+      {!hasPlan ? (
+        <p className="text-sm text-zinc-600 dark:text-zinc-400">
+          No linked case record in the City of Nampa portal yet. Follow the
+          portal link above for the latest documents.
+        </p>
+      ) : attachments.length === 0 ? (
         <p className="text-sm text-zinc-600 dark:text-zinc-400">
           No public attachments on file yet.
         </p>
