@@ -1,10 +1,15 @@
 import { createEnerGovClient } from "@/lib/sources/energov";
 import { queryFeatures, type ArcGISLayerConfig } from "@/lib/sources/arcgis";
+import {
+  getNampaScheduledHearings,
+  type NampaScheduledHearing,
+} from "@/lib/sources/cityofnampa";
 import type {
   Hearing,
   HearingFeed,
   HearingPhase,
   Locality,
+  ScheduledMeeting,
 } from "./types";
 
 const energov = createEnerGovClient({
@@ -103,7 +108,34 @@ export function mapAttrs(attrs: PZAttributes): Hearing {
     appAcres: attrs.APPACRES,
     externalUrl: attrs.APPLINK,
     energovPlanId: guid,
+    meetings: [],
   };
+}
+
+/**
+ * Group scraped CivicPlus rows by APPID and strip the now-redundant appId /
+ * description fields, which live on the owning Hearing.
+ */
+export function indexScheduledMeetings(
+  rows: NampaScheduledHearing[],
+): Map<string, ScheduledMeeting[]> {
+  const byAppId = new Map<string, ScheduledMeeting[]>();
+  for (const r of rows) {
+    const list = byAppId.get(r.appId) ?? [];
+    list.push({
+      body: r.body,
+      bodyLabel: r.bodyLabel,
+      date: r.date,
+      dateLabel: r.dateLabel,
+      continuedNote: r.continuedNote,
+      sourceUrl: r.sourceUrl,
+    });
+    byAppId.set(r.appId, list);
+  }
+  for (const list of byAppId.values()) {
+    list.sort((a, b) => a.date.localeCompare(b.date));
+  }
+  return byAppId;
 }
 
 async function getNampaHearings(): Promise<HearingFeed> {
@@ -117,7 +149,7 @@ async function getNampaHearings(): Promise<HearingFeed> {
     "APPACRES",
     "APPLINK",
   ];
-  const [activeRaw, completedRaw] = await Promise.all([
+  const [activeRaw, completedRaw, scheduledRaw] = await Promise.all([
     queryFeatures<PZAttributes>(PZ_ACTIVE, {
       outFields,
       orderByFields: "APPID DESC",
@@ -128,10 +160,56 @@ async function getNampaHearings(): Promise<HearingFeed> {
       orderByFields: "EFFCTDATE DESC",
       tag: "nampa:pz:completed",
     }),
+    getNampaScheduledHearings().catch((err: unknown) => {
+      console.error("[nampa] getNampaScheduledHearings failed:", err);
+      return [] as NampaScheduledHearing[];
+    }),
   ]);
+  const byAppId = indexScheduledMeetings(scheduledRaw);
+
+  // Secondary index: first raw scheduled row per APPID, for description +
+  // energovPlanId that are not kept in the ScheduledMeeting type.
+  const firstScheduled = new Map<string, NampaScheduledHearing>();
+  for (const r of scheduledRaw) {
+    if (!firstScheduled.has(r.appId)) firstScheduled.set(r.appId, r);
+  }
+
+  const attach = (h: Hearing): Hearing => {
+    const meetings = byAppId.get(h.appId);
+    return meetings ? { ...h, meetings } : h;
+  };
+
+  // APPIDs already accounted for in ArcGIS (active or completed).
+  const knownIds = new Set<string>([
+    ...activeRaw.map((a) => a.APPID),
+    ...completedRaw.map((c) => c.APPID),
+  ]);
+
+  // Stub hearings: on the city's upcoming-hearings page but not yet in ArcGIS.
+  const upcomingOnly: Hearing[] = [];
+  for (const [appId, meetings] of byAppId) {
+    if (knownIds.has(appId)) continue;
+    const first = firstScheduled.get(appId);
+    const typeCode = appId.split("-")[0] ?? "";
+    upcomingOnly.push({
+      appId,
+      appType: typeCode,
+      appTypeLabel: APP_TYPE_LABELS[typeCode] ?? typeCode,
+      appStatus: "Scheduled",
+      appPhase: "Other",
+      appPhaseRaw: "",
+      appScope: first?.description ?? null,
+      appAcres: null,
+      externalUrl: null,
+      energovPlanId: first?.energovPlanId ?? null,
+      meetings,
+    });
+  }
+
   return {
-    active: activeRaw.map(mapAttrs),
-    completed: completedRaw.map(mapAttrs),
+    active: activeRaw.map(mapAttrs).map(attach),
+    completed: completedRaw.map(mapAttrs).map(attach),
+    upcomingOnly,
   };
 }
 

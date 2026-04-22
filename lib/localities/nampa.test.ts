@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
   ENERGOV_GUID_RE,
+  indexScheduledMeetings,
   mapAttrs,
   normalisePhase,
   type PZAttributes,
 } from "./nampa";
+import type { NampaScheduledHearing } from "@/lib/sources/cityofnampa";
 
 const BASE_ATTRS: PZAttributes = {
   OBJECTID: 1,
@@ -81,6 +83,7 @@ describe("mapAttrs", () => {
       appAcres: 1.18,
       externalUrl: BASE_ATTRS.APPLINK,
       energovPlanId: "e5f906c1-b03b-4ab9-8021-0d5f002d1234",
+      meetings: [],
     });
   });
 
@@ -126,5 +129,58 @@ describe("mapAttrs", () => {
     expect(row.appPhaseRaw).toBe("");
     expect(row.appScope).toBeNull();
     expect(row.appAcres).toBeNull();
+    expect(row.meetings).toEqual([]);
+  });
+});
+
+describe("indexScheduledMeetings", () => {
+  const row = (over: Partial<NampaScheduledHearing>): NampaScheduledHearing => ({
+    date: "2026-05-04",
+    dateLabel: "May 4, 2026",
+    body: "City Council",
+    bodyLabel: "City Council",
+    appId: "ANN-00346-2026",
+    description: "",
+    continuedNote: null,
+    energovPlanId: null,
+    sourceUrl: "https://www.cityofnampa.us/1433/Upcoming-Public-Hearings",
+    ...over,
+  });
+
+  it("returns an empty index for an empty input", () => {
+    expect(indexScheduledMeetings([]).size).toBe(0);
+  });
+
+  it("groups multiple rows under the same APPID and sorts them by date", () => {
+    const idx = indexScheduledMeetings([
+      row({ appId: "CMA-00069-2026", date: "2026-05-12", dateLabel: "May 12, 2026" }),
+      row({
+        appId: "CMA-00069-2026",
+        date: "2026-04-28",
+        dateLabel: "April 28, 2026",
+        continuedNote: "Continued to 5/12/26",
+      }),
+    ]);
+    const meetings = idx.get("CMA-00069-2026");
+    expect(meetings).toHaveLength(2);
+    expect(meetings!.map((m) => m.date)).toEqual(["2026-04-28", "2026-05-12"]);
+    expect(meetings![0].continuedNote).toBe("Continued to 5/12/26");
+    expect(meetings![1].continuedNote).toBeNull();
+  });
+
+  it("drops scraper-only fields (appId, description, energovPlanId)", () => {
+    const idx = indexScheduledMeetings([row({})]);
+    const meeting = idx.get("ANN-00346-2026")![0];
+    expect(meeting).not.toHaveProperty("appId");
+    expect(meeting).not.toHaveProperty("description");
+    expect(meeting).not.toHaveProperty("energovPlanId");
+    expect(Object.keys(meeting).sort()).toEqual([
+      "body",
+      "bodyLabel",
+      "continuedNote",
+      "date",
+      "dateLabel",
+      "sourceUrl",
+    ]);
   });
 });

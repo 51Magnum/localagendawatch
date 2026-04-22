@@ -6,8 +6,10 @@ export type {
   HearingFeed,
   HearingPhase,
   Locality,
+  ScheduledMeeting,
   TrackedItem,
 } from "./types";
+export { getUpcomingMeetings, type UpcomingMeeting } from "./meetings";
 
 const LOCALITIES: Record<string, Locality> = {
   [nampa.slug]: nampa,

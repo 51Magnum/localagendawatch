@@ -29,6 +29,26 @@ export type HearingPhase =
   | "Recording"
   | "Other";
 
+/**
+ * A scheduled public-hearing appearance for a single application. One hearing
+ * may have several — e.g. an item continued from P&Z to a later P&Z, or that
+ * passes P&Z and then goes on to City Council.
+ */
+export type ScheduledMeeting = {
+  /** Canonical body identifier, e.g. "P&Z" or "City Council". */
+  body: string;
+  /** Human label for the body, e.g. "Planning & Zoning Commission". */
+  bodyLabel: string;
+  /** ISO date (YYYY-MM-DD) the meeting is scheduled for. */
+  date: string;
+  /** Human-facing label, e.g. "April 28, 2026". */
+  dateLabel: string;
+  /** Upstream "continued to …" note, if any. */
+  continuedNote: string | null;
+  /** Source URL where this schedule was published. */
+  sourceUrl: string;
+};
+
 export type Hearing = {
   /** Stable application id as displayed by the jurisdiction, e.g. "ANN-00352-2026". */
   appId: string;
@@ -50,11 +70,19 @@ export type Hearing = {
   externalUrl: string | null;
   /** EnerGov PlanId (GUID) if we can resolve one; powers on-site plan pages. */
   energovPlanId: string | null;
+  /** Scheduled public-hearing appearances, sorted ascending by date. */
+  meetings: ScheduledMeeting[];
 };
 
 export type HearingFeed = {
   active: Hearing[];
   completed: Hearing[];
+  /**
+   * Hearings that appear on the CivicPlus upcoming-hearings page but have not
+   * yet been added to the ArcGIS active layer.  They are surfaced on hero cards
+   * but excluded from the pipeline phase sections.
+   */
+  upcomingOnly?: Hearing[];
 };
 
 /**
