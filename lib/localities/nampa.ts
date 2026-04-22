@@ -62,7 +62,7 @@ const APP_TYPE_LABELS: Record<string, string> = {
   ZTA: "Zoning Code Text Amendment",
 };
 
-type PZAttributes = {
+export type PZAttributes = {
   OBJECTID: number;
   APPID: string;
   APPTYPE: string | null;
@@ -74,10 +74,10 @@ type PZAttributes = {
   EFFCTDATE?: number | null;
 };
 
-const ENERGOV_GUID_RE =
+export const ENERGOV_GUID_RE =
   /\/plan\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i;
 
-function normalisePhase(raw: string | null): HearingPhase {
+export function normalisePhase(raw: string | null): HearingPhase {
   switch (raw) {
     case "Review":
     case "Notification":
@@ -90,7 +90,7 @@ function normalisePhase(raw: string | null): HearingPhase {
   }
 }
 
-function mapAttrs(attrs: PZAttributes): Hearing {
+export function mapAttrs(attrs: PZAttributes): Hearing {
   const guid = attrs.APPLINK?.match(ENERGOV_GUID_RE)?.[1] ?? null;
   return {
     appId: attrs.APPID,
