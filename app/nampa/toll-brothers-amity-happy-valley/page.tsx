@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
+import conceptPlan from "@/public/nampa/toll-brothers-concept-plan.png";
 
 export const metadata: Metadata = {
   title: "Toll Brothers — 500 homes at Amity & Happy Valley",
@@ -99,9 +101,25 @@ export default function Page() {
 
         <section className="flex flex-col gap-4">
           <h2 className="text-xl font-semibold tracking-tight text-black dark:text-zinc-50">Concept plan</h2>
-          <div className="flex items-center justify-center rounded-lg border border-dashed border-zinc-300 bg-zinc-100 p-12 text-center text-sm text-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400">
-            A concept plan was included with the developer&rsquo;s notice. Image coming soon.
-          </div>
+          <figure className="flex flex-col gap-3">
+            <a
+              href="/nampa/toll-brothers-concept-plan.png"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block overflow-hidden rounded-lg border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950"
+            >
+              <Image
+                src={conceptPlan}
+                alt="Toll Brothers concept plan for the proposed 137-acre development at E. Amity Ave and S. Happy Valley Rd in Nampa, Idaho."
+                className="h-auto w-full"
+                sizes="(min-width: 768px) 768px, 100vw"
+                placeholder="blur"
+              />
+            </a>
+            <figcaption className="text-sm text-zinc-500 dark:text-zinc-400">
+              Concept plan submitted by Toll Brothers with the neighborhood meeting notice, March 13, 2026. Click to view full size.
+            </figcaption>
+          </figure>
         </section>
 
         <section className="flex flex-col gap-4">
