@@ -8,10 +8,6 @@ import type { EnerGovAttachment, EnerGovPlan } from "@/lib/sources/energov";
 
 type RouteParams = { planNumber: string };
 
-export async function generateStaticParams(): Promise<RouteParams[]> {
-  return [];
-}
-
 async function resolveHearing(planNumber: string): Promise<Hearing | null> {
   const nampa = getLocality("nampa");
   if (!nampa?.getHearings) return null;
