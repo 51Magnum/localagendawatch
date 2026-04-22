@@ -4,6 +4,7 @@ import Link from "next/link";
 import conceptPlan from "@/public/nampa/toll-brothers-concept-plan.png";
 import siteMap from "@/public/nampa/toll-brothers-site-map.png";
 import siteMapFlum from "@/public/nampa/toll-brothers-site-map-FLUM.png";
+import { getLocalityContext, localityHref } from "@/lib/locality";
 
 export const metadata: Metadata = {
   title: "Toll Brothers — 500 homes at Amity & Happy Valley",
@@ -11,14 +12,22 @@ export const metadata: Metadata = {
     "Toll Brothers has noticed a neighborhood meeting for a proposed 500-home, 137-acre residential development at the northeast corner of E. Amity Ave and S. Happy Valley Rd in Nampa, Idaho.",
 };
 
-export default function Page() {
+export default async function Page() {
+  const ctx = await getLocalityContext();
+  const onNampaSubdomain = ctx.onSubdomain && ctx.subdomainSlug === "nampa";
+  const nampaHref = localityHref("nampa", "", ctx);
+
   return (
     <div className="flex flex-1 bg-zinc-50 font-sans dark:bg-black">
       <main className="mx-auto flex w-full max-w-3xl flex-col gap-12 px-6 py-12">
         <nav className="text-sm text-zinc-500 dark:text-zinc-400">
-          <Link href="/" className="hover:text-black dark:hover:text-zinc-50">Home</Link>
-          <span className="mx-2">/</span>
-          <Link href="/nampa" className="hover:text-black dark:hover:text-zinc-50">Nampa</Link>
+          {!onNampaSubdomain && (
+            <>
+              <Link href="/" className="hover:text-black dark:hover:text-zinc-50">Home</Link>
+              <span className="mx-2">/</span>
+            </>
+          )}
+          <Link href={nampaHref} className="hover:text-black dark:hover:text-zinc-50">Nampa</Link>
         </nav>
 
         <header className="flex flex-col gap-4">

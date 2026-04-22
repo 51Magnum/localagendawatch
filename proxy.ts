@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-// Known locality subdomains. Requests to <locality>.localagendawatch.com
-// are 308-redirected to https://www.localagendawatch.com/<locality>/<rest>.
+// Known locality subdomains. Requests to <locality>.localagendawatch.com are
+// rewritten internally to /<locality>/<rest> so the subdomain stays in the
+// URL bar. Requests that explicitly include the /<locality> prefix on the
+// subdomain are redirected to the clean form first.
 const LOCALITIES = new Set(["nampa"]);
-const APEX_ORIGIN = "https://www.localagendawatch.com";
 
 export function proxy(request: NextRequest) {
   const host = (request.headers.get("host") ?? "").toLowerCase().split(":")[0];
@@ -15,22 +16,22 @@ export function proxy(request: NextRequest) {
   if (rest.join(".") !== "localagendawatch.com") return;
   if (!LOCALITIES.has(subdomain)) return;
 
-  const { pathname, search } = request.nextUrl;
+  const { pathname } = request.nextUrl;
   const prefix = `/${subdomain}`;
 
-  // If the visitor already typed /locality or /locality/..., strip it before
-  // re-prefixing so we never end up with /nampa/nampa/....
-  let suffix: string;
-  if (pathname === "/" || pathname === prefix) {
-    suffix = "";
-  } else if (pathname.startsWith(`${prefix}/`)) {
-    suffix = pathname.slice(prefix.length);
-  } else {
-    suffix = pathname;
+  // Normalise `nampa.localagendawatch.com/nampa[/...]` to the clean subdomain
+  // URL with a permanent redirect, so shared links stay canonical.
+  if (pathname === prefix || pathname.startsWith(`${prefix}/`)) {
+    const cleaned = request.nextUrl.clone();
+    const stripped = pathname.slice(prefix.length);
+    cleaned.pathname = stripped === "" ? "/" : stripped;
+    return NextResponse.redirect(cleaned, 308);
   }
 
-  const target = new URL(`${prefix}${suffix}${search}`, APEX_ORIGIN);
-  return NextResponse.redirect(target, 308);
+  // Rewrite the subdomain path to the internal /<locality>-prefixed route.
+  const rewritten = request.nextUrl.clone();
+  rewritten.pathname = pathname === "/" ? prefix : `${prefix}${pathname}`;
+  return NextResponse.rewrite(rewritten);
 }
 
 export const config = {

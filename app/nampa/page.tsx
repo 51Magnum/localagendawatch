@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { getLocalityContext, localityHref } from "@/lib/locality";
 
 export const metadata: Metadata = {
   title: "Nampa, Idaho",
@@ -7,15 +8,25 @@ export const metadata: Metadata = {
     "Proposed developments and municipal items we're tracking in Nampa, Idaho.",
 };
 
-export default function NampaHub() {
+export default async function NampaHub() {
+  const ctx = await getLocalityContext();
+  const onNampaSubdomain = ctx.onSubdomain && ctx.subdomainSlug === "nampa";
+  const tollBrothersHref = localityHref(
+    "nampa",
+    "/toll-brothers-amity-happy-valley",
+    ctx
+  );
+
   return (
     <div className="flex flex-1 bg-zinc-50 font-sans dark:bg-black">
       <main className="mx-auto flex w-full max-w-3xl flex-col gap-10 px-6 py-16">
-        <nav className="text-sm text-zinc-500 dark:text-zinc-400">
-          <Link href="/" className="hover:text-black dark:hover:text-zinc-50">
-            Home
-          </Link>
-        </nav>
+        {!onNampaSubdomain && (
+          <nav className="text-sm text-zinc-500 dark:text-zinc-400">
+            <Link href="/" className="hover:text-black dark:hover:text-zinc-50">
+              Home
+            </Link>
+          </nav>
+        )}
 
         <header className="flex flex-col gap-4">
           <p className="font-mono text-sm uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
@@ -36,7 +47,7 @@ export default function NampaHub() {
           <ul className="mt-4 divide-y divide-zinc-200 border-y border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800">
             <li>
               <Link
-                href="/nampa/toll-brothers-amity-happy-valley"
+                href={tollBrothersHref}
                 className="flex flex-col gap-1 py-5 hover:text-black dark:hover:text-zinc-50"
               >
                 <span className="font-medium text-black dark:text-zinc-50">
