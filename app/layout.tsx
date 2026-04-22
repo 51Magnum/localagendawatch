@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -13,9 +14,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "LocalAgendaWatch",
+  metadataBase: new URL("https://www.localagendawatch.com"),
+  title: {
+    default: "LocalAgendaWatch",
+    template: "%s · LocalAgendaWatch",
+  },
   description:
-    "Track upcoming meeting agendas from city councils, school boards, and other public bodies in your community.",
+    "Public awareness of local government decisions — land development, rezoning, and municipal items — before they happen.",
 };
 
 export default function RootLayout({
@@ -28,7 +33,24 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col bg-zinc-50 text-black dark:bg-black dark:text-zinc-50">
+        <header className="border-b border-zinc-200 bg-white/70 backdrop-blur dark:border-zinc-800 dark:bg-black/60">
+          <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-6 py-4">
+            <Link href="/" className="font-semibold tracking-tight">
+              LocalAgendaWatch
+            </Link>
+          </div>
+        </header>
+        {children}
+        <footer className="border-t border-zinc-200 bg-white dark:border-zinc-800 dark:bg-black">
+          <div className="mx-auto w-full max-w-5xl px-6 py-8 text-sm text-zinc-500 dark:text-zinc-400">
+            <p>
+              &copy; {new Date().getFullYear()} LocalAgendaWatch. Independent
+              public-awareness project.
+            </p>
+          </div>
+        </footer>
+      </body>
     </html>
   );
 }
