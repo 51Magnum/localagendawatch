@@ -16,8 +16,8 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.localagendawatch.com"),
   title: {
-    default: "LocalAgendaWatch",
-    template: "%s · LocalAgendaWatch",
+    default: "Local Agenda Watch",
+    template: "%s · Local Agenda Watch",
   },
   description:
     "Public awareness of local government decisions — land development, rezoning, and municipal items — before they happen.",
@@ -37,7 +37,7 @@ export default function RootLayout({
         <header className="border-b border-zinc-200 bg-white/70 backdrop-blur dark:border-zinc-800 dark:bg-black/60">
           <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-6 py-4">
             <Link href="/" className="font-semibold tracking-tight">
-              LocalAgendaWatch
+              Local Agenda Watch
             </Link>
           </div>
         </header>
@@ -45,7 +45,7 @@ export default function RootLayout({
         <footer className="border-t border-zinc-200 bg-white dark:border-zinc-800 dark:bg-black">
           <div className="mx-auto w-full max-w-5xl px-6 py-8 text-sm text-zinc-500 dark:text-zinc-400">
             <p>
-              &copy; {new Date().getFullYear()} LocalAgendaWatch. Independent
+              &copy; {new Date().getFullYear()} Local Agenda Watch. Independent
               public-awareness project.
             </p>
           </div>

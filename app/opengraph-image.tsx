@@ -2,7 +2,7 @@ import { ImageResponse } from "next/og";
 
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
-export const alt = "LocalAgendaWatch";
+export const alt = "Local Agenda Watch";
 
 export default async function Image() {
   return new ImageResponse(
@@ -28,7 +28,7 @@ export default async function Image() {
             color: "#a1a1aa",
           }}
         >
-          LocalAgendaWatch
+          Local Agenda Watch
         </div>
         <div
           style={{

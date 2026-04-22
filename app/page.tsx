@@ -6,14 +6,14 @@ export default function Home() {
       <main className="mx-auto flex w-full max-w-3xl flex-col gap-12 px-6 py-16 sm:py-24">
         <section className="flex flex-col gap-6">
           <p className="font-mono text-sm uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
-            LocalAgendaWatch
+            Local Agenda Watch
           </p>
           <h1 className="text-4xl font-semibold leading-tight tracking-tight text-black dark:text-zinc-50 sm:text-5xl">
             Know what your local government is planning &mdash; before it happens.
           </h1>
           <p className="text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            LocalAgendaWatch surfaces upcoming land development, rezoning, and
-            other municipal decisions so residents can show up informed at
+            Local Agenda Watch surfaces upcoming land development, rezoning,
+            and other municipal decisions so residents can show up informed at
             public meetings.
           </p>
         </section>

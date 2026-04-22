@@ -198,7 +198,7 @@ export default function Page() {
             Notice of Neighborhood Meeting from Toll Brothers, dated March 13, 2026.
           </p>
           <p>
-            LocalAgendaWatch is an independent public-awareness project and is not affiliated with Toll Brothers or the City of Nampa.
+            Local Agenda Watch is an independent public-awareness project and is not affiliated with Toll Brothers or the City of Nampa.
           </p>
         </section>
       </main>
