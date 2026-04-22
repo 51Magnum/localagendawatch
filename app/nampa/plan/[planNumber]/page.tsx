@@ -51,10 +51,17 @@ export default async function PlanPage({
   if (!hearing) notFound();
 
   const planId = hearing.energovPlanId;
+  const client = nampa.energov;
   const [plan, attachments]: [EnerGovPlan | null, EnerGovAttachment[]] = planId
     ? await Promise.all([
-        nampa.energov.getPlan(planId),
-        nampa.energov.getPlanAttachments(planId),
+        client.getPlan(planId).catch((err: unknown) => {
+          console.error(`[nampa/plan] getPlan(${planId}) failed:`, err);
+          return null;
+        }),
+        client.getPlanAttachments(planId).catch((err: unknown) => {
+          console.error(`[nampa/plan] getPlanAttachments(${planId}) failed:`, err);
+          return [] as EnerGovAttachment[];
+        }),
       ])
     : [null, []];
 
