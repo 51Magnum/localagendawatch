@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getLocalityContext, localityHref } from "@/lib/locality";
+import { getLocality } from "@/lib/localities";
+import type { TrackedItem } from "@/lib/localities";
 
 export const metadata: Metadata = {
   title: "Nampa, Idaho",
@@ -8,13 +10,39 @@ export const metadata: Metadata = {
     "Proposed developments and municipal items we're tracking in Nampa, Idaho.",
 };
 
+type TrackedEntry = {
+  key: string;
+  href: string;
+  label: string;
+  blurb?: string;
+};
+
+function trackedEntry(
+  item: TrackedItem,
+  ctx: Awaited<ReturnType<typeof getLocalityContext>>
+): TrackedEntry {
+  if (item.kind === "editorial") {
+    return {
+      key: `editorial:${item.slug}`,
+      href: localityHref("nampa", `/${item.slug}`, ctx),
+      label: item.label,
+      blurb: item.blurb,
+    };
+  }
+  return {
+    key: `plan:${item.planNumber}`,
+    href: localityHref("nampa", `/plan/${item.planNumber}`, ctx),
+    label: item.label ?? item.planNumber,
+    blurb: item.blurb,
+  };
+}
+
 export default async function NampaHub() {
   const ctx = await getLocalityContext();
   const onNampaSubdomain = ctx.onSubdomain && ctx.subdomainSlug === "nampa";
-  const tollBrothersHref = localityHref(
-    "nampa",
-    "/toll-brothers-amity-happy-valley",
-    ctx
+  const nampa = getLocality("nampa");
+  const entries: TrackedEntry[] = (nampa?.tracked ?? []).map((t) =>
+    trackedEntry(t, ctx)
   );
 
   return (
@@ -45,19 +73,23 @@ export default async function NampaHub() {
             Currently tracking
           </h2>
           <ul className="mt-4 divide-y divide-zinc-200 border-y border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800">
-            <li>
-              <Link
-                href={tollBrothersHref}
-                className="flex flex-col gap-1 py-5 hover:text-black dark:hover:text-zinc-50"
-              >
-                <span className="font-medium text-black dark:text-zinc-50">
-                  Toll Brothers &mdash; 500 homes at Amity &amp; Happy Valley
-                </span>
-                <span className="text-sm text-zinc-600 dark:text-zinc-400">
-                  Neighborhood meeting March 24, 2026 &middot; 137 acres &middot; detached single-family
-                </span>
-              </Link>
-            </li>
+            {entries.map((e) => (
+              <li key={e.key}>
+                <Link
+                  href={e.href}
+                  className="flex flex-col gap-1 py-5 hover:text-black dark:hover:text-zinc-50"
+                >
+                  <span className="font-medium text-black dark:text-zinc-50">
+                    {e.label}
+                  </span>
+                  {e.blurb && (
+                    <span className="text-sm text-zinc-600 dark:text-zinc-400">
+                      {e.blurb}
+                    </span>
+                  )}
+                </Link>
+              </li>
+            ))}
           </ul>
         </section>
       </main>
