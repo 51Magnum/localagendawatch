@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import conceptPlan from "@/public/nampa/toll-brothers-concept-plan.png";
+import siteMap from "@/public/nampa/toll-brothers-site-map.png";
+import siteMapFlum from "@/public/nampa/toll-brothers-site-map-FLUM.png";
 
 export const metadata: Metadata = {
   title: "Toll Brothers — 500 homes at Amity & Happy Valley",
@@ -55,23 +57,62 @@ export default function Page() {
           </dl>
         </section>
 
-        <section className="flex flex-col gap-4">
+        <section className="flex flex-col gap-6">
           <h2 className="text-xl font-semibold tracking-tight text-black dark:text-zinc-50">Where</h2>
           <p className="text-base leading-7 text-zinc-600 dark:text-zinc-400">
             Northeast corner of E. Amity Ave and S. Happy Valley Rd. Canyon County
-            parcel numbers R3066500000 and R3066301000.
+            parcel numbers R3066500000 and R3066301000.{" "}
+            <a
+              href="https://www.google.com/maps?q=E+Amity+Ave+and+S+Happy+Valley+Rd,+Nampa,+ID"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline underline-offset-2"
+            >
+              View on Google Maps
+            </a>
           </p>
-          <div className="overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-800">
-            <iframe
-              title="Site location map"
-              src="https://www.google.com/maps?q=E+Amity+Ave+and+S+Happy+Valley+Rd,+Nampa,+ID&output=embed"
-              width="100%"
-              height="360"
-              loading="lazy"
-              referrerPolicy="no-referrer-when-downgrade"
-              className="block"
-            />
-          </div>
+
+          <figure className="flex flex-col gap-3">
+            <a
+              href="/nampa/toll-brothers-site-map.png"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block overflow-hidden rounded-lg border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950"
+            >
+              <Image
+                src={siteMap}
+                alt="Annotated aerial map showing the proposed 137-acre Toll Brothers development at the northeast corner of E. Amity Ave and S. Happy Valley Rd in Nampa, Idaho."
+                className="h-auto w-full"
+                sizes="(min-width: 768px) 768px, 100vw"
+                placeholder="blur"
+              />
+            </a>
+            <figcaption className="text-sm text-zinc-500 dark:text-zinc-400">
+              Site overview: proposed 137-acre parcel outlined on an aerial map.
+            </figcaption>
+          </figure>
+
+          <figure className="flex flex-col gap-3">
+            <a
+              href="/nampa/toll-brothers-site-map-FLUM.png"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block overflow-hidden rounded-lg border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950"
+            >
+              <Image
+                src={siteMapFlum}
+                alt="The proposed Toll Brothers site overlaid on the City of Nampa Future Land Use Map (FLUM)."
+                className="h-auto w-full"
+                sizes="(min-width: 768px) 768px, 100vw"
+                placeholder="blur"
+              />
+            </a>
+            <figcaption className="text-sm text-zinc-500 dark:text-zinc-400">
+              Site overlaid on the City of Nampa Future Land Use Map (FLUM) &mdash;
+              the city&rsquo;s long-range planning document showing designated future
+              land uses, which guides zoning decisions.
+            </figcaption>
+          </figure>
         </section>
 
         <section className="flex flex-col gap-4">
